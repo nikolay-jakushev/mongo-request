@@ -1,0 +1,31 @@
+[
+  { "this": { "CREATE": "Query, DeviceQuery" } },
+  {
+    "DeviceQuery": {
+      "ON_OK": {
+        "MONGO:db": "%@DeviceQuery.MongoQuery%",
+        "%@DeviceQuery.IN.Address%": ""
+      }
+    }
+  },
+
+  { "this": { "CREATE": "Query, DeviceCount" } },
+  {
+    "DeviceCount": {
+      "ON_OK": {
+        "MONGO:db": "%@DeviceCount.MongoCount%",
+        "%@DeviceCount.IN.Address%": ""
+      }
+    }
+  },
+
+  { "this": { "CREATE": "QueryInfo, DeviceInfo" } },
+  {
+    "DeviceInfo": {
+      "ON_OK": {
+        "MONGO:db": "%@DeviceInfo.MongoInfo%",
+        "%@DeviceInfo.IN.Address%": ""
+      }
+    }
+  }
+]
