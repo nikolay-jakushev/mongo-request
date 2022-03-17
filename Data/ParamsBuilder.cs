@@ -273,31 +273,7 @@ namespace MongoRequest
             {
                 {"_id", "$devID._id" },
                 {"TMSN", 1 },
-                {"serialNum", "$devID.serialNum" },
-                {"deviceType", "$devID.deviceType" },
-                {"modelParams", "$devID.modelParams" },
-                {"lastUpdate", "$devID.lastUpdate" },
-                {"releaseDate", "$devID.releaseDate" },
-                {"firmwareVersion", "$devID.firmwareVersion" },
-                {"checkUpDate", "$devID.checkUpDate" },
-                {"metersCount", "$devID.devHis.metersCount"},
-                {"upTime", "$devID.devHis.upTime" },
-                {"userTime", "$devID.devHis.userTime" },
-                {"sendTime", "$devID.devHis.sendTime" },
-                {"value", "$devID.devHis.value" },
-                {"battery", "$devID.devHis.battery" },
-                {"temperature", "$devID.devHis.temperature" },
-                {"gsmboxID", "$devID.devHis.gsmbox" },
-                {"longitude", "$devID.devHis.longitude" },
-                {"latitude", "$devID.devHis.latitude" },
-                {"accuracy", "$devID.devHis.accuracy" },
-                {"firmware", "$devID.devHis.firmware" },
-                {"referer", "$devID.devHis.referer" },
-                {"appID", "$devID.devHis.appID" },
-                {"tags", "$devID.tags" },
-                {"address", "$devID.devHis.address" },
-                {"address_components", "$devID.devHis.address_components" },
-                {"locationObject", "$devID.devHis.locationObject" }
+                
             };
             var document = deviceUser.ToBsonDocument();
             return document;
@@ -309,31 +285,7 @@ namespace MongoRequest
             {
                 {"_id", 1 },
                 {"serialNum", 1 },
-                {"deviceType",  1 },
-                {"modelParams",  1 },
-                {"lastUpDate", 1 },
-                {"releaseDate", 1 },
-                {"firmwareVersion", 1 },
-                {"checkUpDate", 1 },
-                {"TMSN", 1 },
-                {"tags", 1},
-                {"metersCount", "$devHis.metersCount" },
-                {"upTime", "$devHis.upTime" },
-                {"userTime", "$devHis.userTime" },
-                {"sendTime", "$devHis.sendTime" },
-                {"value", "$devHis.value" },
-                {"battery", "$devHis.battery" },
-                {"temperature", "$devHis.temperature" },
-                {"gsmboxID", "$devHis.gsmbox" },
-                {"longitude", "$devHis.longitude" },
-                {"latitude", "$devHis.latitude" },
-                {"accuracy", "$devHis.accuracy" },
-                {"firmware", "$devHis.firmware" },
-                {"referer", "$devHis.referer" },
-                {"appID", "$devHis.appID" },
-                {"address", "$devHis.address" },
-                {"address_components", "$devHis.address_components" },
-                {"locationObject", "$devHis.locationObject" }
+                
             };
 
             var document = device1.ToBsonDocument();
