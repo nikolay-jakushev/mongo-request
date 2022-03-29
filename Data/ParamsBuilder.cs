@@ -4,45 +4,43 @@ using MongoDB.Bson;
 using System.Collections.Generic;
 
 
-
-
-
-
-
 namespace MongoRequest
 {
     public class ParamsBuilder
     {
         private readonly ModelParams modelParams = new();
         private readonly Condition condition = new();
-        private readonly Deserializer deserializer = new();
-        public ModelParams GenerateDeviceModel(string msg)
-        {
-            dynamic query = deserializer.Deserialize(msg);
+        public ModelParams GenerateDeviceModel(In query)
+        {                        
             ModelParams modelParams = new();
             try
             {
-                if (condition.CheckParams(msg))
+                if (condition.CheckParams(query))
                 {
                     modelParams = SetModelDefault(query);
                 }
-                else if (condition.CheckModel(msg))
+
+                if (condition.CheckModel(query))
                 {
                     modelParams = SetModelDevice(query);
                 }
-                else if (condition.CheckRangeAndType(msg))
+
+                if (condition.CheckRangeAndType(query))
                 {
                     modelParams = SetModelDeviceRange(query);
                 }
-                else if (condition.CheckRange(msg))
+
+                if (condition.CheckRange(query))
                 {
                     modelParams = SetDeviceRange(query);
                 }
-                else if (condition.CheckUser(msg))
+
+                if (condition.CheckUser(query))
                 {
                     modelParams = SetModelUser(query);
                 }
-                else if (condition.CheckUserAndRange(msg) || condition.CheckUserRangeAndModel(msg) || condition.CheckUserModel(msg))
+
+                if (condition.CheckUserAndRange(query) || condition.CheckUserRangeAndModel(query) || condition.CheckUserModel(query))
                 {
                     modelParams = SetUserRange(query);
                 }
@@ -52,15 +50,20 @@ namespace MongoRequest
             return modelParams;
         }
 
-        public ModelParams SetModelDefault(dynamic query)
+        public ModelParams SetModelDefault(In query)
         {
             try
             {
-                modelParams.Sort = query.PARAMS?.Sort;
-                modelParams.Order = query.PARAMS?.Order;
+                if(query.Params.Device == null)
+                {
+                    modelParams.IsDemo = false;
+                    modelParams.IsEmpty = false;
+                }
+                modelParams.Sort = query.Params.Sort;
+                modelParams.Order = query.Params.Order;
 
-                modelParams.PageSize = query.PARAMS?.Paging?.PageSize;
-                modelParams.PageNumber = query.PARAMS?.Paging?.PageNumber;
+                modelParams.PageSize = query.Params.Paging.PageSize;
+                modelParams.PageNumber = query.Params.Paging.PageNumber;
                 modelParams.Skip = (modelParams.PageNumber - 1) * modelParams.PageSize;
 
                 modelParams.Project = GetProject(query);
@@ -69,30 +72,30 @@ namespace MongoRequest
             return modelParams;
         }
 
-        public ModelParams SetModelDevice(dynamic query)
+        public ModelParams SetModelDevice(In query)
         {
             try
             {
-                if (query.PARAMS?.Device.ToString() != "")
+                if (query.Params.Device != null)
                 {
-                    modelParams.DeviceID = query.PARAMS?.Device?.MeterType;
-                    modelParams.SearchID = query.PARAMS?.Device?.Search;
-                    modelParams.IsDemo = query.PARAMS?.Device?.IsDemo;
-                    modelParams.IsEmpty = query.PARAMS?.Device?.IsEmpty;
+                    modelParams.DeviceID = query.Params.Device?.MeterType;
+                    modelParams.SearchID = query.Params.Device?.Search;
+                    modelParams.IsDemo = query.Params.Device.IsDemo;
+                    modelParams.IsEmpty = query.Params.Device.IsEmpty;
                 }
-                else if (query.PARAMS?.Device.ToString() == "")
+                else if (query.Params.Device == null)
                 {
-                    modelParams.DeviceID = query.PARAMS?.Device;
-                    modelParams.SearchID = query.PARAMS?.Device;
+                    modelParams.DeviceID = "";
+                    modelParams.SearchID = "";
                 }
                 modelParams.UserID = GetUser(query);
                 modelParams.Tags = GetTags(query);
 
-                modelParams.Sort = query.PARAMS?.Sort;
-                modelParams.Order = query.PARAMS?.Order;
+                modelParams.Sort = query.Params.Sort;
+                modelParams.Order = query.Params.Order;
 
-                modelParams.PageSize = query.PARAMS?.Paging?.PageSize;
-                modelParams.PageNumber = query.PARAMS?.Paging?.PageNumber;
+                modelParams.PageSize = query.Params.Paging.PageSize;
+                modelParams.PageNumber = query.Params.Paging.PageNumber;
                 modelParams.Skip = (modelParams.PageNumber - 1) * modelParams.PageSize;
 
                 modelParams.Project = GetProject(query);
@@ -101,29 +104,29 @@ namespace MongoRequest
             return modelParams;
         }
 
-        public ModelParams SetModelDeviceRange(dynamic query)
+        public ModelParams SetModelDeviceRange(In query)
         {
             try
             {
-                if (query.PARAMS?.Device.ToString() != "")
+                if (query.Params.Device != null)
                 {
-                    modelParams.DeviceID = query.PARAMS?.Device?.MeterType;
-                    modelParams.SearchID = query.PARAMS?.Device?.Search;
-                    modelParams.IsDemo = query.PARAMS?.Device.IsDemo;
-                    modelParams.IsEmpty = query.PARAMS?.Device.IsEmpty;
+                    modelParams.DeviceID = query.Params.Device.MeterType;
+                    modelParams.SearchID = query.Params.Device.Search;
+                    modelParams.IsDemo = query.Params.Device.IsDemo;
+                    modelParams.IsEmpty = query.Params.Device.IsEmpty;
                 }
-                else if (query.PARAMS?.Device.ToString() == "")
+                else if (query.Params.Device == null)
                 {
-                    modelParams.DeviceID = query.PARAMS?.Device;
-                    modelParams.SearchID = query.PARAMS?.Device;
+                    modelParams.DeviceID = query.Params.Device.MeterType;
+                    modelParams.SearchID = query.Params.Device.Search;
                 }
                 modelParams.Tags = GetTags(query);
 
-                modelParams.Sort = query.PARAMS?.Sort;
-                modelParams.Order = query.PARAMS?.Order;
+                modelParams.Sort = query.Params.Sort;
+                modelParams.Order = query.Params.Order;
 
-                modelParams.PageSize = query.PARAMS?.Paging?.PageSize;
-                modelParams.PageNumber = query.PARAMS?.Paging?.PageNumber;
+                modelParams.PageSize = query.Params.Paging.PageSize;
+                modelParams.PageNumber = query.Params.Paging.PageNumber;
                 modelParams.Skip = (modelParams.PageNumber - 1) * modelParams.PageSize;
 
                 modelParams.Project = GetProject(query);
@@ -132,16 +135,28 @@ namespace MongoRequest
             return modelParams;
         }
 
-        public ModelParams SetDeviceRange(dynamic query)
+        public ModelParams SetDeviceRange(In query)
         {
             try
             {
-                modelParams.Sort = query.PARAMS?.Sort;
-                modelParams.Order = query.PARAMS?.Order;
+                if (query.Params.Device != null)
+                {
+                    modelParams.DeviceID = query.Params.Device.MeterType;
+                    modelParams.SearchID = query.Params.Device.Search;
+                    modelParams.IsDemo = query.Params.Device.IsDemo;
+                    modelParams.IsEmpty = query.Params.Device.IsEmpty;
+                }
+                else if (query.Params.Device == null)
+                {
+                    modelParams.DeviceID = "^";
+                    modelParams.SearchID = "";
+                }
+                modelParams.Sort = query.Params.Sort;
+                modelParams.Order = query.Params.Order;
                 modelParams.Tags = GetTags(query);
 
-                modelParams.PageSize = query.PARAMS?.Paging?.PageSize;
-                modelParams.PageNumber = query.PARAMS?.Paging?.PageNumber;
+                modelParams.PageSize = query.Params.Paging.PageSize;
+                modelParams.PageNumber = query.Params.Paging.PageNumber;
                 modelParams.Skip = (modelParams.PageNumber - 1) * modelParams.PageSize;
 
                 modelParams.Project = GetProject(query);
@@ -150,20 +165,20 @@ namespace MongoRequest
             return modelParams;
         }
 
-        public ModelParams SetModelUser(dynamic query)
+        public ModelParams SetModelUser(In query)
         {
             try
             {
-                modelParams.DeviceID = query.PARAMS?.Device?.MeterType;
-                modelParams.SearchID = query.PARAMS?.Device?.Search;
+                modelParams.DeviceID = query.Params.Device.MeterType;
+                modelParams.SearchID = query.Params.Device.Search;
                 modelParams.UserID = GetUser(query);
                 modelParams.Tags = GetTags(query);
 
-                modelParams.Sort = query.PARAMS?.Sort;
-                modelParams.Order = query.PARAMS?.Order;
+                modelParams.Sort = query.Params.Sort;
+                modelParams.Order = query.Params.Order;
 
-                modelParams.PageSize = query.PARAMS?.Paging?.PageSize;
-                modelParams.PageNumber = query.PARAMS?.Paging?.PageNumber;
+                modelParams.PageSize = query.Params.Paging.PageSize;
+                modelParams.PageNumber = query.Params.Paging.PageNumber;
                 modelParams.Skip = (modelParams.PageNumber - 1) * modelParams.PageSize;
 
                 modelParams.Project = GetProject(query);
@@ -172,20 +187,20 @@ namespace MongoRequest
             return modelParams;
         }
 
-        public ModelParams SetUserRange(dynamic query)
+        public ModelParams SetUserRange(In query)
         {
             try
             {
-                modelParams.DeviceID = query.PARAMS?.Device?.MeterType;
-                modelParams.SearchID = query.PARAMS?.Device?.Search;
+                modelParams.DeviceID = query.Params.Device?.MeterType;
+                modelParams.SearchID = query.Params.Device?.Search;
                 modelParams.UserID = GetUser(query);
                 modelParams.Tags = GetTags(query);
 
-                modelParams.Sort = query.PARAMS?.Sort;
-                modelParams.Order = query.PARAMS?.Order;
+                modelParams.Sort = query.Params.Sort;
+                modelParams.Order = query.Params.Order;
 
-                modelParams.PageSize = query.PARAMS?.Paging?.PageSize;
-                modelParams.PageNumber = query.PARAMS?.Paging?.PageNumber;
+                modelParams.PageSize = query.Params.Paging.PageSize;
+                modelParams.PageNumber = query.Params.Paging.PageNumber;
                 modelParams.Skip = (modelParams.PageNumber - 1) * modelParams.PageSize;
 
                 modelParams.Project = GetProject(query);
@@ -194,15 +209,15 @@ namespace MongoRequest
             return modelParams;
         }
 
-        private List<BsonElement> GetProject(dynamic query)
+        private List<BsonElement> GetProject(In query)
         {
-            string user = query.PARAMS.User?.ToString();
+            string user = query.Params.User?.ToString();
             bool userIsNull = user == "" || user == null;
             bool userIsNotNull = user != "" || user != null;
 
             BsonElement value;
             List<BsonElement> element = new();
-            var project = query.PARAMS.Project;
+            var project = query.Params.Project;
 
             if (userIsNull)
             {
@@ -229,38 +244,40 @@ namespace MongoRequest
             return null;
         }
 
-        private static List<string> GetTags(dynamic query)
+        private static List<string> GetTags(In query)
         {
-            var tags = query.PARAMS?.Tags;
+            var tags = query.Params.Tags;
+            
             List<string> elements = new();
 
-            if (tags.ToString() != "")
+            if (tags != null)
             {
                 foreach (string item in tags)
                 {
                     elements.Add(item);
                 }
             }
-            else if (tags.ToString() == "")
+            else if (tags == null)
             {
                 return elements;
             }
             return elements;
         }
 
-        private static List<string> GetUser(dynamic query)
+        private static List<string> GetUser(In query)
         {
-            var user = query.PARAMS?.User;
+            var user = query.Params.User;
+            
             List<string> elements = new();
 
-            if (user.ToString() != "")
+            if (user != null)
             {
-                foreach (string item in user)
+                foreach (var item in user)
                 {
                     elements.Add(item);
                 }
             }
-            else if (user.ToString() == "")
+            else if (user == null)
             {
                 return elements;
             }
@@ -273,7 +290,31 @@ namespace MongoRequest
             {
                 {"_id", "$devID._id" },
                 {"TMSN", 1 },
-                
+                {"serialNum", "$devID.serialNum" },
+                {"deviceType", "$devID.deviceType" },
+                {"modelParams", "$devID.modelParams" },
+                {"lastUpdate", "$devID.lastUpdate" },
+                {"releaseDate", "$devID.releaseDate" },
+                {"firmwareVersion", "$devID.firmwareVersion" },
+                {"checkUpDate", "$devID.checkUpDate" },
+                {"metersCount", "$devID.devHis.metersCount"},
+                {"upTime", "$devID.devHis.upTime" },
+                {"userTime", "$devID.devHis.userTime" },
+                {"sendTime", "$devID.devHis.sendTime" },
+                {"value", "$devID.devHis.value" },
+                {"battery", "$devID.devHis.battery" },
+                {"temperature", "$devID.devHis.temperature" },
+                {"gsmboxID", "$devID.devHis.gsmboxID" },
+                {"longitude", "$devID.devHis.longitude" },
+                {"latitude", "$devID.devHis.latitude" },
+                {"accuracy", "$devID.devHis.accuracy" },
+                {"firmware", "$devID.devHis.firmware" },
+                {"referer", "$devID.devHis.referer" },
+                {"appID", "$devID.devHis.appID" },
+                {"tags", "$devID.tags" },
+                {"address", "$devID.devHis.address" },
+                {"address_components", "$devID.devHis.address_components" },
+                {"locationObject", "$devID.devHis.locationObject" }
             };
             var document = deviceUser.ToBsonDocument();
             return document;
@@ -285,7 +326,31 @@ namespace MongoRequest
             {
                 {"_id", 1 },
                 {"serialNum", 1 },
-                
+                {"deviceType",  1 },
+                {"modelParams",  1 },
+                {"lastUpDate", 1 },
+                {"releaseDate", 1 },
+                {"firmwareVersion", 1 },
+                {"checkUpDate", 1 },
+                {"TMSN", 1 },
+                {"tags", 1},                
+                {"metersCount", "$devHis.metersCount" },
+                {"upTime", "$devHis.upTime" },
+                {"userTime", "$devHis.userTime" },
+                {"sendTime", "$devHis.sendTime" },
+                {"value", "$devHis.value" },
+                {"battery", "$devHis.battery" },
+                {"temperature", "$devHis.temperature" },
+                {"gsmboxID", "$devHis.gsmboxID" },
+                {"longitude", "$devHis.longitude" },
+                {"latitude", "$devHis.latitude" },
+                {"accuracy", "$devHis.accuracy" },
+                {"firmware", "$devHis.firmware" },
+                {"referer", "$devHis.referer" },
+                {"appID", "$devHis.appID" },
+                {"address", "$devHis.address" },
+                {"address_components", "$devHis.address_components" },
+                {"locationObject", "$devHis.locationObject" }
             };
 
             var document = device1.ToBsonDocument();

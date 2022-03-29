@@ -1,12 +1,11 @@
 ﻿using System;
 using S42.Core;
-using MongoQuery;
-using MongoQuery.Query;
 using MongoDB.Bson;
+using MongoQuery.Query;
+using MongoQuery.Builder;
 using System.Collections.Generic;
-
-
-
+using MongoRequest.Question.Pipeline;
+using MongoRequest.Data.State;
 
 namespace MongoRequest.Question
 {
@@ -29,6 +28,8 @@ namespace MongoRequest.Question
         private readonly ParamsBuilder paramsBuilder = new();
         private readonly Builder build = new();
         private readonly QueryBase queryBase = new();
+        private readonly PipelineList pipelineList = new();
+        private readonly Deserializer deserializer = new();
 
         /// <summary>
         /// Точка входа
@@ -66,13 +67,13 @@ namespace MongoRequest.Question
         /// <param name="name"></param>
         public Query(string name) : base(name)
         {
-            Input = Variables.Add("IN", GetParams);
-            MongoQuery = Variables.Add("MongoQuery");
-            MongoCount = Variables.Add("MongoCount");
-            Address = Variables.Add("Address");
+            Input       = Variables.Add("IN", GetParams);
+            MongoQuery  = Variables.Add("MongoQuery");
+            MongoCount  = Variables.Add("MongoCount");
+            Address     = Variables.Add("Address");
 
-            ON_OK = Events.Add("ON_OK", this);
-            ON_BAD = Events.Add("ON_BAD", this);
+            ON_OK       = Events.Add("ON_OK", this);
+            ON_BAD      = Events.Add("ON_BAD", this);
         }
 
         /// <summary>
@@ -100,13 +101,15 @@ namespace MongoRequest.Question
         /// <param name="msg"></param>
         private void SetParams(string msg)
         {
-            if (condition.CheckParams(msg) || condition.CheckModel(msg) || condition.CheckRange(msg) || condition.CheckRangeAndType(msg))
+            In query = deserializer.DeserializeTest(msg);
+
+            if (condition.CheckParams(query) || condition.CheckModel(query) || condition.CheckRange(query) || condition.CheckRangeAndType(query))
             {
-                GetDevice(msg);
+                GetDevice(query);
             }
-            else if (condition.CheckUser(msg) || condition.CheckUserAndRange(msg) || condition.CheckUserRangeAndModel(msg) || condition.CheckUserModel(msg))
+            else if (condition.CheckUser(query) || condition.CheckUserAndRange(query) || condition.CheckUserRangeAndModel(query) || condition.CheckUserModel(query))
             {
-                GetUser(msg);
+                GetUser(query);
             }
         }
 
@@ -114,95 +117,90 @@ namespace MongoRequest.Question
         /// Функция получения и отправки данных счетчиков из БД на страницу
         /// </summary>
         /// <param name="msg"></param>
-        private void GetDevice(string msg)
+        private void GetDevice(In msg)
         {
-            ModelParams modelParams = paramsBuilder.GenerateDeviceModel(msg);            
+            ModelParams modelParams = paramsBuilder.GenerateDeviceModel(msg);
             bool deviceDefault = condition.CheckParams(msg);
             bool deviceModel = condition.CheckModel(msg);
             bool deviceHaveRange = condition.CheckRange(msg);
             bool deviceHaveRangeAndType = condition.CheckRangeAndType(msg);
 
-            BsonDocument project = queryBase.AddOperator("$project", modelParams.Project);
+            pipelineList.Project = queryBase.AddOperator("$project", modelParams.Project);
+            pipelineList.SortItem = new(modelParams.Sort, modelParams.Order);
+            pipelineList.Sort = queryBase.AddOperator("$sort", pipelineList.SortItem);
+            pipelineList.Skip = queryBase.AddOperator("$skip", modelParams.Skip);
+            pipelineList.Limit = queryBase.AddOperator("$limit", modelParams.PageSize);
+            pipelineList.CountQuery = queryBase.AddOperator("$count", "devices");
 
-            BsonElement sortItem = new(modelParams.Sort, modelParams.Order);            
-            BsonDocument sort = queryBase.AddOperator("$sort", sortItem);
-            BsonDocument skip = queryBase.AddOperator("$skip", modelParams.Skip);
-            BsonDocument limit = queryBase.AddOperator("$limit", modelParams.PageSize);
-
-            BsonDocument countQuery = queryBase.AddOperator("$count", "devices");
-
-            if (deviceDefault)
+            if (deviceDefault || deviceModel)
             {
-                //---------------------------------Device----------------------------------------//
-                BsonDocument matchDefault = matchBuilder.GetMatchDefault(modelParams);
+                //---------------------------------Device----------------------------------------//                
+                pipelineList.Match = matchBuilder.GetMatchDevice(modelParams, msg);                
 
-                List<BsonValue> listPipeline = new();
-                listPipeline.Add(matchDefault);
-                listPipeline.Add(project);
-                listPipeline.Add(sort);
-                listPipeline.Add(skip);
-                listPipeline.Add(limit);
-
-                BsonDocument devices = build.Aggregate("devices", listPipeline, modelParams.PageSize);
-                MongoQuery.Value = devices.ToBsonDocument().ToString();
-                //----------------------------------Test----------------------------------------//
-                TestValue = devices.ToBsonDocument().ToString();
-                ExpectedValue = devices.ToBsonDocument().ToString();
-
-                //---------------------------------Count----------------------------------------//
-                List<BsonValue> countPipe = new();
-                countPipe.Add(countQuery);
-                BsonDocument count = build.Aggregate("devices", countPipe, modelParams.PageSize);
-                MongoCount.Value = count.ToBsonDocument().ToString();
+                List<BsonValue> listPipeline = new()
+                {
+                    pipelineList.Match,
+                    pipelineList.Project,
+                    pipelineList.Sort,
+                    pipelineList.Skip,
+                    pipelineList.Limit
+                };
                 
-            }
-            else if (deviceModel)
-            {
-                //---------------------------------Device----------------------------------------//
-                BsonDocument match = matchBuilder.GetMatch(modelParams, msg);
-                List<BsonValue> listPipeline = new();
-                listPipeline.Add(match);
-                listPipeline.Add(project);
-                listPipeline.Add(sort);
-                listPipeline.Add(skip);
-                listPipeline.Add(limit);
-
-                BsonDocument device = build.Aggregate("devices", listPipeline, modelParams.PageSize);                
+                BsonDocument device = build.Aggregate("devices", listPipeline, modelParams.PageSize);
                 MongoQuery.Value = device.ToBsonDocument().ToString();
+
+                Console.WriteLine(device.ToString().Replace(device.ToString(), "Счетчики"));
+
+
                 //----------------------------------Test----------------------------------------//
                 TestValue = device.ToBsonDocument().ToString();
                 ExpectedValue = device.ToBsonDocument().ToString();
 
                 //---------------------------------Count----------------------------------------//
-                List<BsonValue> countPipe = new();
-                countPipe.Add(match);
-                countPipe.Add(countQuery);
+                List<BsonValue> countPipe = new()
+                {
+                    pipelineList.Match,
+                    pipelineList.Project,                    
+                    pipelineList.CountQuery
+                };
+
                 BsonDocument count = build.Aggregate("devices", countPipe, modelParams.PageSize);
                 MongoCount.Value = count.ToBsonDocument().ToString();
+                Console.WriteLine(count.ToString().Replace(count.ToString(), "Кол-во"));
+
             }
             else if (deviceHaveRange || deviceHaveRangeAndType)
             {
-                //---------------------------------Device----------------------------------------//                
-                BsonDocument matchRange = matchBuilder.GetMatchRangeAndType(modelParams, msg);
-                List<BsonValue> listPipeline = new();
-                listPipeline.Add(matchRange);
-                listPipeline.Add(project);
-                listPipeline.Add(sort);
-                listPipeline.Add(skip);
-                listPipeline.Add(limit);
+                //---------------------------------Device----------------------------------------//
+                pipelineList.Match = matchBuilder.GetMatchRangeAndType(modelParams, msg);
 
+                List<BsonValue> listPipeline = new()
+                {
+                    pipelineList.Match,
+                    pipelineList.Project,
+                    pipelineList.Sort,
+                    pipelineList.Skip,
+                    pipelineList.Limit
+                };
+                
                 BsonDocument device = build.Aggregate("devices", listPipeline, modelParams.PageSize);
                 MongoQuery.Value = device.ToBsonDocument().ToString();
+                Console.WriteLine(device.ToString().Replace(device.ToString(), "Счетчики"));
                 //----------------------------------Test----------------------------------------//
                 TestValue = device.ToBsonDocument().ToString();
                 ExpectedValue = device.ToBsonDocument().ToString();
 
                 //---------------------------------Count----------------------------------------//
-                List<BsonValue> countPipe = new();
-                countPipe.Add(matchRange);
-                countPipe.Add(countQuery);
+                List<BsonValue> countPipe = new()
+                {
+                    pipelineList.Match,
+                    pipelineList.Project,
+                    pipelineList.CountQuery
+                };
+                
                 BsonDocument count = build.Aggregate("devices", countPipe, modelParams.PageSize);
                 MongoCount.Value = count.ToBsonDocument().ToString();
+                Console.WriteLine(count.ToString().Replace(count.ToString(), "Кол-во"));
             }
         }
         
@@ -210,7 +208,7 @@ namespace MongoRequest.Question
         /// Функция получения и отправки данных счетчиков пользователей из БД на страницу
         /// </summary>
         /// <param name="msg"></param>
-        private void GetUser(string msg)
+        private void GetUser(In msg)
         {
             ModelParams modelParams = paramsBuilder.GenerateDeviceModel(msg);            
             bool userDefault = condition.CheckUser(msg);
@@ -221,32 +219,33 @@ namespace MongoRequest.Question
             BsonDocument lookup = queryBase.LookUp("devices", "device", "_id", "devID");
             BsonDocument lookupTags = queryBase.LookUp("tags", "tags", "_id", "tagsID");
             BsonDocument unwind = queryBase.AddOperator("$unwind", "$devID");
-            BsonDocument project = queryBase.AddOperator("$project", modelParams.Project);
+            pipelineList.Project = queryBase.AddOperator("$project", modelParams.Project);
 
-            BsonElement sortItem = new(modelParams.Sort, modelParams.Order);            
-            BsonDocument sort = queryBase.AddOperator("$sort", sortItem);
-            BsonDocument skip = queryBase.AddOperator("$skip", modelParams.Skip);
-            BsonDocument limit = queryBase.AddOperator("$limit", modelParams.PageSize);            
-
-            BsonDocument countQuery = queryBase.AddOperator("$count", "devices");
+            pipelineList.SortItem = new(modelParams.Sort, modelParams.Order);
+            pipelineList.Sort = queryBase.AddOperator("$sort", pipelineList.SortItem);
+            pipelineList.Skip = queryBase.AddOperator("$skip", modelParams.Skip);
+            pipelineList.Limit = queryBase.AddOperator("$limit", modelParams.PageSize);            
+            
+            pipelineList.CountQuery = queryBase.AddOperator("$count", "devices");
 
             if (userDefault)
             {
-                BsonDocument matchDefault = matchBuilder.GetMatchUser(modelParams);
+                BsonDocument match = matchBuilder.GetMatchUser(modelParams);
 
                 List<BsonValue> listPipeline = new()
                 {
-                    matchDefault,
+                    match,
                     lookup,
                     unwind,
-                    project,
-                    sort,
-                    skip,
-                    limit
+                    pipelineList.Project,
+                    pipelineList.Sort,
+                    pipelineList.Skip,
+                    pipelineList.Limit
                 };
 
                 BsonDocument user = build.Aggregate("user_devices", listPipeline, modelParams.PageSize);
                 MongoQuery.Value = user.ToBsonDocument().ToString();
+                Console.WriteLine(user.ToString().Replace(user.ToString(), "Счетчики"));
                 //----------------------------------Test----------------------------------------//
                 TestValue = user.ToBsonDocument().ToString();
                 ExpectedValue = user.ToBsonDocument().ToString();
@@ -254,79 +253,91 @@ namespace MongoRequest.Question
                 //---------------------------------Count----------------------------------------//
                 List<BsonValue> listCount = new()
                 {
-                    matchDefault,
+                    match,
                     lookup,
                     unwind,
-                    countQuery
+                    pipelineList.Project,
+                    pipelineList.CountQuery
                 };
+
                 BsonDocument count = build.Aggregate("user_devices", listCount, modelParams.PageSize);
                 MongoCount.Value = count.ToBsonDocument().ToString();
+                Console.WriteLine(count.ToString().Replace(count.ToString(), "Кол-во"));
             }
             else if(userRange || userHaveRangeAndModel)
-            {                
-                BsonDocument matchDefault = matchBuilder.GetMatchUser(modelParams);
+            {
+                BsonDocument match = matchBuilder.GetMatchUser(modelParams);
                 BsonDocument matchRange = matchBuilder.GetMatchUserRange(msg);
 
                 List<BsonValue> listPipeline = new()
                 { 
-                    matchDefault,
+                    match,
                     lookup,
-                    unwind,
-                    project,
+                    unwind,                    
+                    pipelineList.Project,
                     matchRange,
-                    sort,
-                    skip,
-                    limit
+                    pipelineList.Sort,
+                    pipelineList.Skip,
+                    pipelineList.Limit
                 };
-                BsonDocument user1 = build.Aggregate("user_devices", listPipeline, modelParams.PageSize);
-                MongoQuery.Value = user1.ToBsonDocument().ToString();
+
+                BsonDocument user = build.Aggregate("user_devices", listPipeline, modelParams.PageSize);
+                MongoQuery.Value = user.ToBsonDocument().ToString();
+
+                Console.WriteLine(user.ToString().Replace(user.ToString(), "Счетчики: Диапазоны / Модели"));
                 //----------------------------------Test----------------------------------------//
-                TestValue = user1.ToBsonDocument().ToString();
-                ExpectedValue = user1.ToBsonDocument().ToString();
+                TestValue = user.ToBsonDocument().ToString();
+                ExpectedValue = user.ToBsonDocument().ToString();
 
                 //---------------------------------Count----------------------------------------//
                 List<BsonValue> listCount = new()
                 { 
-                    matchDefault,
+                    match,
                     lookup,
                     unwind,
+                    pipelineList.Project,
                     matchRange,
-                    countQuery
+                    pipelineList.CountQuery
                 };
+
                 BsonDocument count = build.Aggregate("user_devices", listCount, modelParams.PageSize);
                 MongoCount.Value = count.ToBsonDocument().ToString();
+                Console.WriteLine(count.ToString().Replace(count.ToString(), "Кол-во: Диапазоны / Модели"));
             }
             else if (userHaveGsmBox)
             {
-                BsonDocument matchDefault = matchBuilder.GetMatchUser(modelParams);
+                BsonDocument match = matchBuilder.GetMatchUser(modelParams);
                 List<BsonValue> listPipeline = new()
                 {
-                    matchDefault,
+                    match,
                     lookup,
                     unwind,
-                    project,
-                    sort,
-                    skip,
-                    limit
+                    pipelineList.Project,
+                    pipelineList.Sort,
+                    pipelineList.Skip,
+                    pipelineList.Limit
                 };
 
-                BsonDocument user1 = build.Aggregate("user_devices", listPipeline, modelParams.PageSize);
-                MongoQuery.Value = user1.ToBsonDocument().ToString();
+                BsonDocument user = build.Aggregate("user_devices", listPipeline, modelParams.PageSize);
+                MongoQuery.Value = user.ToBsonDocument().ToString();
+                Console.WriteLine(user.ToString().Replace(user.ToString(), "Счетчики"));
                 //----------------------------------Test----------------------------------------//
-                TestValue = user1.ToBsonDocument().ToString();
-                ExpectedValue = user1.ToBsonDocument().ToString();
+                TestValue = user.ToBsonDocument().ToString();
+                ExpectedValue = user.ToBsonDocument().ToString();
 
                 //---------------------------------Count----------------------------------------//
                 List<BsonValue> listCount = new()
                 {
-                    matchDefault,
+                    match,
                     lookup,
                     unwind,
-                    countQuery
+                    pipelineList.Project,
+                    pipelineList.CountQuery
                 };
 
                 BsonDocument count = build.Aggregate("user_devices", listCount, modelParams.PageSize);
-                MongoCount.Value = count.ToBsonDocument().ToString();                
+                MongoCount.Value = count.ToBsonDocument().ToString();
+                Console.WriteLine(count.ToString().Replace(count.ToString(), "Кол-во"));
             }
         }        
     }

@@ -1,205 +1,81 @@
-﻿using MongoDB.Bson;
-using Newtonsoft.Json;
-using System;
+﻿using System;
+using MongoDB.Bson;
+using MongoQuery.Query;
+using MongoRequest.Data.State;
 using System.Collections.Generic;
-
-
+using MongoRequest.Data.Strategy.State;
 
 
 namespace MongoRequest
 {
     public class MatchBuilder
     {
-        MongoQuery.Query.QueryBase queryBase = new();
-
-        public BsonDocument GetMatchDefault(ModelParams modelParams)
+        private readonly QueryBase queryBase = new();
+                
+        public BsonDocument GetMatchDevice(ModelParams modelParams, In query)
         {
-            BsonElement isDemo = new("isDemo", modelParams.IsDemo);
-            BsonElement isEmpty = new("isEmpty", modelParams.IsEmpty);
-            List<BsonElement> element = new();
-            element.Add(isDemo);
-            element.Add(isEmpty);
-
-            BsonDocument parametrs = queryBase.AddOperator("$match", element);
-            return parametrs;
-        }
-        
-        public BsonDocument GetMatch(ModelParams modelParams, string msg)
-        {
-            dynamic query = JsonConvert.DeserializeObject(msg);
-            BsonDocument match = new BsonDocument();
-
-            if (query.PARAMS?.Device.ToString() == "")
-            {
-                match = SetDevice(modelParams, msg);
-                return match;
-            }
-            else if (query.PARAMS?.Device.ToString() != "")
-            {
-                match = SetModelDevice(modelParams, msg);
-                return match;
-            }
+            BsonDocument match = SetModelDevice(modelParams, query);
             return match;
         }
 
-        public BsonDocument SetModelDevice(ModelParams modelParams, string msg)
+        public BsonDocument SetModelDevice(ModelParams modelParams, In query)
         {
-            dynamic query = JsonConvert.DeserializeObject(msg);
-            string model = query.PARAMS?.Device.MeterType.ToString();
-            string search = query.PARAMS?.Device.Search.ToString();
-            string tags = query.PARAMS?.Tags.ToString();
-            BsonDocument match = new BsonDocument();
+            var model = query.Params.Device;
+            var tags = query.Params.Tags;
 
-            if (search == "" && model != "" && tags == "")
+            BsonDocument match = new();
+            
+            
+            if (model == null && tags == null) 
             {
-                BsonElement isDemo = new("isDemo", modelParams.IsDemo);
-                BsonElement isEmpty = new("isEmpty", modelParams.IsEmpty);
-
-                BsonDocument regex = queryBase.AddOperator("$regex", modelParams.DeviceID);
-                BsonDocument id = new("_id", regex);
-                List<BsonValue> list = new();
-                list.Add(id);
-
-                BsonArray array = queryBase.Array(list);
-                BsonElement and = new("$and", array);
-
-                BsonDocument matchList = new();
-                matchList.Add(and);
-                matchList.Add(isEmpty);
-                matchList.Add(isDemo);
-
-                match = queryBase.AddOperator("$match", matchList);
-                return match;
-            }            
-            else if (search != "" && model != "" && tags == "")
-            {
-                BsonElement isDemo = new("isDemo", modelParams.IsDemo);
-                BsonElement isEmpty = new("isEmpty", modelParams.IsEmpty);
-
-                BsonDocument regex = queryBase.AddOperator("$regex", modelParams.DeviceID);
-                BsonDocument regex2 = queryBase.AddOperator("$regex", modelParams.SearchID);
-                BsonDocument id = new("_id", regex);
-                BsonDocument seatchField = new("_id", regex2);
-
-                List<BsonValue> list = new();
-                list.Add(id);
-                list.Add(seatchField);
-
-                BsonArray array = queryBase.Array(list);
-                BsonElement and = new("$and", array);
-
-                BsonDocument matchList = new();
-                matchList.Add(and);
-                matchList.Add(isEmpty);
-                matchList.Add(isDemo);
-
-                match = queryBase.AddOperator("$match", matchList);
-                return match;
+                Match matchDefault = new(new Default());
+                return matchDefault.GetMatch(modelParams, query);
             }
-            else if (search == "" && model != "" && tags != "")
+
+            if (model.Search == "" && model.MeterType != "" && tags == null)
             {
-                BsonDocument element = queryBase.AddOperator("$in", modelParams.Tags);
-                BsonElement isDemo = new("isDemo", modelParams.IsDemo);
-                BsonElement isEmpty = new("isEmpty", modelParams.IsEmpty);
-
-                BsonDocument regex = queryBase.AddOperator("$regex", modelParams.DeviceID);                
-                BsonDocument id = new("_id", regex);
-                BsonDocument tag = new("tags", element);
-
-
-                List<BsonValue> list = new();
-                list.Add(id);
-                list.Add(tag);
-
-                BsonArray array = queryBase.Array(list);
-                BsonElement and = new("$and", array);
-
-                BsonDocument matchList = new();
-                matchList.Add(and);
-                matchList.Add(isEmpty);
-                matchList.Add(isDemo);
-
-                match = queryBase.AddOperator("$match", matchList);
-                return match;
+                Match matchModel = new(new Model());
+                return matchModel.GetMatch(modelParams, query);
             }
-            else if(search != "" && model != "" && tags != "")
+
+            if (model.Search != "" && model.MeterType != "" && tags == null)
             {
-                BsonDocument element = queryBase.AddOperator("$in", modelParams.Tags);
-                BsonElement isDemo = new("isDemo", modelParams.IsDemo);
-                BsonElement isEmpty = new("isEmpty", modelParams.IsEmpty);
-
-                BsonDocument regex = queryBase.AddOperator("$regex", modelParams.DeviceID);
-                BsonDocument regex2 = queryBase.AddOperator("$regex", modelParams.SearchID);
-
-                BsonDocument id = new("_id", regex);
-                BsonDocument tag = new("tags", element);
-                BsonDocument seatchField = new("_id", regex2);
-
-                List<BsonValue> list = new();
-                list.Add(id);
-                list.Add(seatchField);
-                list.Add(tag);
-
-                BsonArray array = queryBase.Array(list);
-                BsonElement and = new("$and", array);
-
-                BsonDocument matchList = new();
-                matchList.Add(and);
-                matchList.Add(isEmpty);
-                matchList.Add(isDemo);
-
-                match = queryBase.AddOperator("$match", matchList);
-                return match;
+                Match match1 = new(new ModelSearch());
+                return match1.GetMatch(modelParams, query);
             }
+
+            if (model.Search == "" && model.MeterType != "" && tags != null)
+            {
+                Match tagsModel = new(new TagsModel());
+                return tagsModel.GetMatch(modelParams, query);
+            }
+
+            if(model.Search != "" && model.MeterType != "" && tags != null)
+            {
+                Match isNotEmpty = new(new TagsModelSearch());
+                return isNotEmpty.GetMatch(modelParams, query);
+            }
+
+            if (model.Search == "" && model.MeterType == "" && tags != null)
+            {
+                Match tag = new(new Tags());
+                return tag.GetMatch(modelParams, query);
+            }
+
             return match;
         }
         
-        public BsonDocument SetDevice(ModelParams modelParams, string msg)
+        public BsonDocument GetMatchRangeAndType(ModelParams modelParams, In query)
         {
-            dynamic query = JsonConvert.DeserializeObject(msg);
-            string model = query.PARAMS?.Device.ToString();
-            string search = query.PARAMS?.Device.ToString();
-            string tags = query.PARAMS?.Tags.ToString();
-            BsonDocument match = new BsonDocument();
-
-            if (search == "" && model == "" && tags != "")
-            {
-                BsonDocument element = queryBase.AddOperator("$in", modelParams.Tags);
-                BsonElement isDemo = new("isDemo", modelParams.IsDemo);
-                BsonElement isEmpty = new("isEmpty", modelParams.IsEmpty);
-                BsonDocument tag = new("tags", element);
-
-
-                List<BsonValue> list = new();
-                list.Add(tag);
-
-                BsonArray array = queryBase.Array(list);
-                BsonElement and = new("$and", array);
-
-                BsonDocument matchList = new();
-                matchList.Add(and);
-                matchList.Add(isEmpty);
-                matchList.Add(isDemo);
-
-                match = queryBase.AddOperator("$match", matchList);
-                return match;
-            }            
-            return match;
-        }
-
-        public BsonDocument GetMatchRangeAndType(ModelParams modelParams, string msg)
-        {
-            dynamic query = JsonConvert.DeserializeObject(msg);
             Int32 defaultValueStart = 300;
             Int32 defaultValueEnd = int.MaxValue;
-            string fields = query.PARAMS.Range?.Fields;
-            Int32 start = query.PARAMS.Range?.Start ?? defaultValueStart;
-            Int32 end = query.PARAMS.Range?.End ?? defaultValueEnd;
-            BsonDocument matchRange = new BsonDocument();
+            string fields = query.Params.Range?.Fields;
+            Int32 start = query.Params.Range?.Start ?? defaultValueStart;
+            Int32 end = query.Params.Range?.End ?? defaultValueEnd;
+            BsonDocument matchRange = new();
 
-            if (query.PARAMS.Tags.ToString() == "")
+            if (query.Params.Tags == null)
             {
-
                 BsonElement isDemo = new("isDemo", modelParams.IsDemo);
                 BsonElement isEmpty = new("isEmpty", modelParams.IsEmpty);
 
@@ -234,7 +110,7 @@ namespace MongoRequest
                 matchRange = queryBase.AddOperator("$match", matchList);
                 return matchRange;
             }
-            else if (query.PARAMS.Tags.ToString() != "")
+            else if (query.Params.Tags != null)
             {
                 BsonDocument element = queryBase.AddOperator("$in", modelParams.Tags);
                 BsonElement isDemo = new("isDemo", modelParams.IsDemo);
@@ -279,7 +155,6 @@ namespace MongoRequest
         public BsonDocument GetMatchUser(ModelParams modelParams)
         {
             BsonDocument element = queryBase.AddOperator("$in", modelParams.UserID);
-            BsonDocument userID = queryBase.AddOperator("$eq", modelParams.UserID);
             BsonDocument deviceID = queryBase.AddOperator("$regex", modelParams.DeviceID);
             BsonDocument searchID = queryBase.AddOperator("$regex", modelParams.SearchID);
 
@@ -300,15 +175,13 @@ namespace MongoRequest
             return parametrs;
         }
 
-        public BsonDocument GetMatchUserRange(string msg)
+        public BsonDocument GetMatchUserRange(In query)
         {
-            dynamic query = JsonConvert.DeserializeObject(msg);
-            
             Int32 defaultValueStart = 300;
             Int32 defaultValueEnd = int.MaxValue;
-            string fields = query.PARAMS.Range?.Fields;
-            Int32 start = query.PARAMS.Range?.Start ?? defaultValueStart;
-            Int32 end = query.PARAMS.Range?.End ?? defaultValueEnd;
+            string fields = query.Params.Range?.Fields;
+            Int32 start = query.Params.Range?.Start ?? defaultValueStart;
+            Int32 end = query.Params.Range?.End ?? defaultValueEnd;
 
             BsonDocument startGte = queryBase.AddOperator("$gte", start);
             BsonDocument endLte = queryBase.AddOperator("$lte", end);

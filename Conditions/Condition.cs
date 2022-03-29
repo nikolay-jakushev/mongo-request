@@ -1,110 +1,101 @@
-﻿
-
-
-
-namespace MongoRequest
+﻿namespace MongoRequest
 {
     public class Condition
     {
-        private readonly Deserializer deserializer = new();
-        public bool CheckParams(string msg)
+        public bool CheckParams(In query)
         {
-            dynamic query = deserializer.Deserialize(msg);
             //Существует ли пользователь
-            string user = query.PARAMS.User?.ToString();
-
+            var user = query.Params.User;
             //Существует ли диапазон
-            string range = query.PARAMS.Range?.ToString();
-            string device = query.PARAMS.Device?.ToString();
-            string tags = query.PARAMS.Tags?.ToString();
+            var range = query.Params.Range;
+            var device = query.Params.Device;
+            var tags = query.Params.Tags;
 
-            return user == "" && range == "" && device == "" && tags == "";
+            return user == null && range == null && device == null && tags == null;
         }
 
-        public bool CheckModel(string msg)
+        public bool CheckModel(In query)
         {
-            dynamic query = deserializer.Deserialize(msg);
             //Существует ли пользователь
-            string user = query.PARAMS.User?.ToString();
-
+            var user = query.Params.User;
             //Существует ли диапазон
-            string range = query.PARAMS.Range?.ToString();
-            string device = query.PARAMS.Device?.ToString();
-            string tags = query.PARAMS?.Tags.ToString();
+            var range = query.Params.Range;
+            var device = query.Params.Device;
+            var tags = query.Params.Tags;
 
-            return user == "" && range == "" && (device != "" || tags != "");
+            return user == null && range == null && (device != null || tags != null);
         }
 
-        public bool CheckRange(string msg)
+        public bool CheckRange(In query)
         {
-            dynamic query = deserializer.Deserialize(msg);
             //Существует ли пользователь
-            string user = query.PARAMS.User?.ToString();
-
+            var user = query.Params.User;
             //Существует ли диапазон
-            string range = query.PARAMS.Range?.ToString();
-            string device = query.PARAMS.Device?.ToString();
-            string tags = query.PARAMS?.Tags.ToString();
+            var range = query.Params.Range;
+            var device = query.Params.Device;
+            var tags = query.Params.Tags;
 
-            return user == "" && range != "" && device == "" && tags == "";
+            return user == null && range != null && (device == null || tags == null);
         }
 
-        public bool CheckRangeAndType(string msg)
+        public bool CheckRangeAndType(In query)
         {
-            dynamic query = deserializer.Deserialize(msg);
             //Существует ли пользователь
-            string user = query.PARAMS.User?.ToString();
-
+            var user = query.Params.User;
             //Существует ли диапазон
-            string range = query.PARAMS.Range?.ToString();
-            string device = query.PARAMS.Device?.ToString();
-            string tags = query.PARAMS?.Tags.ToString();
+            var range = query.Params.Range;
+            var device = query.Params.Device;
+            var tags = query.Params.Tags;
 
-            return user == "" && range != "" && (device != "" || tags != "");
+            return user == null && range != null && (device != null || tags != null);
         }
 
-        public bool CheckUser(string msg)
+        public bool CheckUser(In query)
         {
-            dynamic query = deserializer.Deserialize(msg);
             //Существует ли пользователь
-            string user = query.PARAMS.User?.ToString();
+            var user = query.Params.User;
             //Существует ли диапазон
-            string range = query.PARAMS.Range?.ToString();
-            string device = query.PARAMS.Device?.MeterType.ToString();
-            return user != "" && range == "" && device == "^";
+            var range = query.Params.Range;
+            var device = query.Params.Device;
+            var tags = query.Params.Tags;
+
+            return user != null && range == null && (device == null || device != null);
         }
 
-        public bool CheckUserAndRange(string msg)
+        public bool CheckUserAndRange(In query)
         {
-            dynamic query = deserializer.Deserialize(msg);
             //Существует ли пользователь
-            string user = query.PARAMS.User?.ToString();
+            var user = query.Params.User;
             //Существует ли диапазон
-            string range = query.PARAMS.Range?.ToString();
-            string device = query.PARAMS.Device?.MeterType.ToString();
-            return user != "" && range != "" && device == "^";
+            var range = query.Params.Range;
+            var device = query.Params.Device;
+            var tags = query.Params.Tags;
+
+            return user != null && range != null && device == null;
         }
 
-        public bool CheckUserRangeAndModel(string msg)
+        public bool CheckUserRangeAndModel(In query)
         {
-            dynamic query = deserializer.Deserialize(msg);
             //Существует ли пользователь
-            string user = query.PARAMS.User?.ToString();
+            var user = query.Params.User;
             //Существует ли диапазон
-            string range = query.PARAMS.Range?.ToString();
-            string device = query.PARAMS.Device?.MeterType.ToString();
-            return user != "" && range != "" && device != "^";
+            var range = query.Params.Range;
+            var device = query.Params.Device;
+            var tags = query.Params.Tags;
+
+            return user != null && range != null && device != null;
         }
 
-        public bool CheckUserModel(string msg)
+        public bool CheckUserModel(In query)
         {
-            dynamic query = deserializer.Deserialize(msg);
             //Существует ли пользователь
-            string user = query.PARAMS.User?.ToString();
+            var user = query.Params.User;
             //Существует ли диапазон
-            string range = query.PARAMS.Range?.ToString();
-            string device = query.PARAMS.Device?.MeterType.ToString();
-            return user != "" && range == "" && device != "^";
+            var range = query.Params.Range;
+            var device = query.Params.Device;
+            var tags = query.Params.Tags;
+
+            return user != null && range == null && device != null;
         }
     }
 }

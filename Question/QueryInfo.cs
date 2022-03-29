@@ -1,12 +1,10 @@
 ﻿using S42.Core;
 using System;
-using MongoQuery;
+using MongoQuery.Builder;
 using MongoQuery.Query;
 using MongoDB.Bson;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-
-
 
 
 namespace MongoRequest.Question

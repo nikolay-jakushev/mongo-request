@@ -1,8 +1,6 @@
 ﻿using Newtonsoft.Json;
 
 
-
-
 namespace MongoRequest
 {
     public class Deserializer
@@ -10,7 +8,13 @@ namespace MongoRequest
         public object Deserialize(string msg)
         {
            object query = JsonConvert.DeserializeObject(msg);
-            return query;
+           return query;
         }
+
+        public In DeserializeTest(string msg)
+        {
+            In query = JsonConvert.DeserializeObject<In>(msg);
+            return query;
+        }      
     }
 }
