@@ -38,6 +38,12 @@ namespace MongoRequest
                 return matchModel.GetMatch(modelParams, query);
             }
 
+            if (model.Search != "" && model.MeterType == "^" && tags == null)
+            {
+                Match match1 = new(new Search());
+                return match1.GetMatch(modelParams, query);
+            }
+
             if (model.Search != "" && model.MeterType != "" && tags == null)
             {
                 Match match1 = new(new ModelSearch());

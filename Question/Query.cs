@@ -135,7 +135,7 @@ namespace MongoRequest.Question
             if (deviceDefault || deviceModel)
             {
                 //---------------------------------Device----------------------------------------//                
-                pipelineList.Match = matchBuilder.GetMatchDevice(modelParams, msg);                
+                pipelineList.Match = matchBuilder.GetMatchDevice(modelParams, msg);
 
                 List<BsonValue> listPipeline = new()
                 {
@@ -169,7 +169,8 @@ namespace MongoRequest.Question
                 Console.WriteLine(count.ToString().Replace(count.ToString(), "Кол-во"));
 
             }
-            else if (deviceHaveRange || deviceHaveRangeAndType)
+
+            if (deviceHaveRange || deviceHaveRangeAndType)
             {
                 //---------------------------------Device----------------------------------------//
                 pipelineList.Match = matchBuilder.GetMatchRangeAndType(modelParams, msg);
@@ -264,7 +265,8 @@ namespace MongoRequest.Question
                 MongoCount.Value = count.ToBsonDocument().ToString();
                 Console.WriteLine(count.ToString().Replace(count.ToString(), "Кол-во"));
             }
-            else if(userRange || userHaveRangeAndModel)
+
+            if(userRange || userHaveRangeAndModel)
             {
                 BsonDocument match = matchBuilder.GetMatchUser(modelParams);
                 BsonDocument matchRange = matchBuilder.GetMatchUserRange(msg);
@@ -304,7 +306,8 @@ namespace MongoRequest.Question
                 MongoCount.Value = count.ToBsonDocument().ToString();
                 Console.WriteLine(count.ToString().Replace(count.ToString(), "Кол-во: Диапазоны / Модели"));
             }
-            else if (userHaveGsmBox)
+
+            if (userHaveGsmBox)
             {
                 BsonDocument match = matchBuilder.GetMatchUser(modelParams);
                 List<BsonValue> listPipeline = new()

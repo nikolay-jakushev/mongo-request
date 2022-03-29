@@ -19,28 +19,23 @@ namespace MongoRequest
                 {
                     modelParams = SetModelDefault(query);
                 }
-
-                if (condition.CheckModel(query))
+                else if (condition.CheckModel(query))
                 {
                     modelParams = SetModelDevice(query);
                 }
-
-                if (condition.CheckRangeAndType(query))
+                else if (condition.CheckRangeAndType(query))
                 {
                     modelParams = SetModelDeviceRange(query);
                 }
-
-                if (condition.CheckRange(query))
+                else if (condition.CheckRange(query))
                 {
                     modelParams = SetDeviceRange(query);
                 }
-
-                if (condition.CheckUser(query))
+                else if (condition.CheckUser(query))
                 {
                     modelParams = SetModelUser(query);
                 }
-
-                if (condition.CheckUserAndRange(query) || condition.CheckUserRangeAndModel(query) || condition.CheckUserModel(query))
+                else if (condition.CheckUserAndRange(query) || condition.CheckUserRangeAndModel(query) || condition.CheckUserModel(query))
                 {
                     modelParams = SetUserRange(query);
                 }
@@ -292,6 +287,7 @@ namespace MongoRequest
                 {"TMSN", 1 },
                 {"serialNum", "$devID.serialNum" },
                 {"deviceType", "$devID.deviceType" },
+                {"lastUpdate", "$devID.lastUpdate" },
                 
             };
             var document = deviceUser.ToBsonDocument();
@@ -305,13 +301,7 @@ namespace MongoRequest
                 {"_id", 1 },
                 {"serialNum", 1 },
                 {"deviceType",  1 },
-                {"modelParams",  1 },
                 {"lastUpDate", 1 },
-                {"releaseDate", 1 },
-                {"firmwareVersion", 1 },
-                {"checkUpDate", 1 },
-                {"TMSN", 1 },
-                {"tags", 1},                
                 
             };
 
